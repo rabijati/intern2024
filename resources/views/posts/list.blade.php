@@ -1,7 +1,6 @@
 <style>
 
-    ...
-    swal2-html-container{
+    .swal2-html-container{
         color :white;
     }
 </style>
@@ -36,6 +35,7 @@
                     <td>
                         <a href="{{ route('post.edit',['postid' => $post->id]) }}" class="btn btn-primary mb-4">Edit</a>
                         <span class="btn btn-danger mb-4 delete-button" data-id="{{$post -> id}}"> Delete </span>
+                        <a href="{{ route('post.viewpost',['postid' => $post->id]) }}" class="btn btn-danger mb-">Add Comment</a>
                     </td>
                 </tr>
                 @endforeach
@@ -90,15 +90,14 @@ $(document).ready(function() {
             reverseButtons: true
         }).then((result) => {
             if (result.isConfirmed) {
-                $.ajax({
-                    url: '/admin/post/delete/' + postid,
+                $.ajax({url: '/admin/post/delete/' + postid,
                     success: function(result) {
                         let message = JSON.parse(result);
                         console.log(message);
                         if (message.status) {
                             swalWithBootstrapButtons.fire({
                                 title: "Deleted!",
-                                text: message.status,
+                                text: message.message,
                                 icon: "success"
                             });
 
