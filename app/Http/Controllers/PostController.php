@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comment;
+use App\Models\Group;
 use App\Models\Post;
 use Illuminate\Http\Request;
+use Yajra\DataTables\DataTables;
 
 class PostController extends Controller
 {
     public function __construct(Post $post){
-        $this->model = $post;
+        $this->model = $post;   
     }
 
     public function view(){
@@ -18,8 +20,62 @@ class PostController extends Controller
         ]);
     }
 
+    public function serversideview(Request $request){
+        if ($request -> ajax()) {
+            $data = $this->model->all();
+            return DataTables::of($data)
+                ->addIndexColumn()
+                ->addColumn('title', function ($row){
+                    return $row->title;
+                })
+                ->addColumn('description', function ($row){
+                    return $row->description;   
+                })
+                ->addColumn('action', function ($row){
+                    $actionBtn = '';
+                    $actionBtn .= '<a href="" class="btn btn-primary mb-4"> Edit </a>';
+                    $actionBtn .= '<span class="btn btn-danger mb-4 delete-button" data-id=""> Delete </span>';
+                    $actionBtn .= '<a href ="" class="btn btn-danger mb-4"> Add Comment </a>';
+                    return $actionBtn;
+                })
+                ->rawColumns(['status', 'action'])
+                ->make(true);
+        }
+        return view ('posts.serversidelist');
+    }
+
+    // public function serversideview(){
+    //     return view ('posts.serversidelist');
+    // }
+
+    // public function ajaxview(Request $request){
+    //     if ($request -> ajax()) {
+    //         $data = $this->model->all();
+    //         return DataTables::of($data)
+    //             ->addIndexColumn()
+    //             ->addColumn('title', function ($row){
+    //                 return $row->title;
+    //             })
+    //             ->addColumn('description', function ($row){
+    //                 return $row->description;   
+    //             })
+    //             ->addColumn('action', function ($row){
+    //                 $actionBtn = '';
+    //                 $actionBtn .= '<a href="" class="btn btn-primary mb-4"> Edit </a>';
+    //                 $actionBtn .= '<span class="btn btn-danger mb-4 delete-button" data-id=""> Delete </span>';
+    //                 $actionBtn .= '<a href ="" class="btn btn-danger mb-4"> Add Comment </a>';
+    //                 return $actionBtn;
+    //             })
+    //             ->rawColumns(['status', 'action'])
+    //             ->make(true);
+    //     }
+    //     return view ('posts.ajaxlist');
+    // }
+
     public function create(){
-        return view ('posts.create');
+        return view ('posts.create',[
+            'groups' => Group::all(),
+        ]);
     }
     public function store(Request $request){
         $request->validate([
@@ -32,19 +88,22 @@ class PostController extends Controller
             'title' => $request->title,
             'description' => $request->description ,
         ]);
+        $postid->groups()->sync($request->groups);
         return redirect()->route('post.view')->with('success', 'Post added successfully');
          }catch(\Exception $e){
-            return redirect()->back->withInput()->withErros(['error' => 'Validation Error']);
+            return redirect()->back->withInput()->withErros(['error' => ' There is an issue making post. Please contact admin']);
          }
     }
 
     public function edit($postid){
-        $post = Post::find($postid);
+        $post = Post::find($postid)->with('groups');
         if(!$post){
             return redirect()->route('post.view')->with('error', 'Post not found');
         }
         return view('posts.edit',[
             'post' =>  $post,
+            'groups' => Group::all(),
+
         ]);
 
     }
@@ -62,7 +121,11 @@ class PostController extends Controller
         $post->update([
             'title' => $request->input('title'),
             'description' => $request->input('description'),
+            'groups' => ['required'],
+
         ]);
+
+        $post->groups()->attach($request->groups);
 
         return redirect()->route('post.view')->with('success', 'Post edited successfully');
 
@@ -88,8 +151,7 @@ class PostController extends Controller
     } 
 
     public function viewpost($postid){
-        // print_r($this->model->with('comment')->get());die();
-        // $post = Post::find($postid);
+    
         $post = $this->model->where('id',$postid)->with('comment')->get();
         if(!$post){
             return redirect()->route('post.view')->with('error', 'Post not found');
@@ -114,6 +176,46 @@ class PostController extends Controller
             return redirect()->back()->withInput()->withErrors(['error' => 'There is an issue making post. Please contact admin']);
         }
     }
+
+
+    public function apiStore(Request $request)
+    {
+        if(is_null($request->title)){
+            return response()->json(['message' => 'Title is required']);
+        }
+        try {
+            $this->model->create([
+                'title' => $request->title,
+                'description' => $request->description,
+            ]);
+
+            return response()->json(['status' => 200, 'message' => 'Post created successfully!']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 422, 'message' => 'There is an issue making post. Please contact admin']);
+        }
+    }
+
+    public function apiEdit(Request $request,$id)
+    {
+        $post = Post::find($id);
+        if(is_null($request->title)){
+            return response()->json(['message' => 'Title is required']);
+        }
+        if (!$post) {
+            return response()->json(['message' => 'Post not found']);
+        }
+        try{
+            $post->update([
+                'title' => $request->input('title'),
+                'description' => $request->input('description'),
+            ]);
+            return response()->json(['status' => 200, 'message' => 'Post updated successfully!']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 422, 'message' => 'There is an issue updating post. Please contact admin']);
+        }
+
+    }
+
 
 
 }

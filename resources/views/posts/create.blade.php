@@ -4,22 +4,20 @@
     </div>
 
     @php
-        $error ='';
+    $error ='';
     @endphp
     @if($errors -> any())
-        @foreach($errors -> all() as $er)
-            @php
-                $error .= $er;
-            @endphp
-        @endforeach
-        @endif
-    
+    @foreach($errors -> all() as $er)
+    @php
+    $error .= $er;
+    @endphp
+    @endforeach
+    @endif
+
     <!-- Session Status -->
 
     <x-auth-session-status class="mb-4" :status="session('status')" />
     <input type="text" id="error" value="{{$error}}" readonly hidden>
- 
-
     <form method="POST" action="{{ route('post.create') }}">
         @csrf
 
@@ -32,8 +30,19 @@
         <!-- Description -->
         <div>
             <label for="description">{{__('Description')}}</label>
-            <textarea id="description" rows="10" class="block mt-1 w-full" name="description" required autofocus> </textarea>
+            <textarea id="description" rows="10" class="block mt-1 w-full" name="description" required
+                autofocus> </textarea>
         </div>
+
+        <!-- Groups -->
+        <select class="form-select form-select-sm" aria-label=".form-select-sm example" id="groups" name="groups[]"
+            multiple>
+            <option value="">Select Group</option>
+            @foreach($groups as $group)
+            <option value="{{ $group->id }}">{{ $group->title }}</option>
+            @endforeach
+        </select>
+
 
         <div class="flex items-center justify-end mt-4">
             <x-primary-button>
@@ -44,15 +53,17 @@
 </x-app-layout>
 
 <script>
-    $(document).ready(function() {
-        if ($('#error').val() != '') {
-            Swal.fire({
-                position: "top-end",
-                icon: "error",
-                title: $('#error').val(),
-                showConfirmButton: false,
-                timer: 1500
-            });
-        }
-    });
+$(document).ready(function() {
+    if ($('#error').val() != '') {
+        Swal.fire({
+            position: "top-end",
+            icon: "error",
+            title: $('#error').val(),
+            showConfirmButton: false,
+            timer: 1500
+        });
+    }
+
+    $('#groups').select2();
+});
 </script>
